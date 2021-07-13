@@ -60,44 +60,66 @@ def make_labels(image,min_vol,max_vol):
     return labels
 
 
-def make_labels_trackpy(image,mass,size,_numba=True,max_mass=0,_round=True):
+def make_labels_trackpy(image,mass,size=9,_separation=3,_numba=True,max_mass=0,_round=True):
     import trackpy as tp
     import scipy.ndimage as ndi
     from scipy.ndimage.morphology import binary_dilation
 
+    if image.ndim == 2:
+        _size = size
+    elif image.ndim == 3:
+        _size = (9, size, size)
      # ~ dotrack(ficheiro, plotgraph=True,_numba=True,massa=1500,tamanho=13,dist=250,memoria=1,stub=3,frame=19,colourIDX=0):
-    if _numba:
-        f = tp.locate(image,size,minmass=mass,engine='numba')
-    else:
-        f = tp.locate(image,size,minmass=mass)
+    if image.ndim == 2:
+        if _numba:
+            f = tp.locate(image,diameter=size,separation=_separation,minmass=mass,engine='numba')
+        else:
+            f = tp.locate(image,diameter=size,separation=_separation, minmass=mass)
+    elif image.ndim == 3:
+        if _numba:
+            f = tp.locate(image,diameter=_size,separation = (3, 3, 3),
+                minmass=mass,engine='numba')
+        else:
+            f = tp.locate(image,diameter=_size,separation = (3, 5, 5),
+                minmass=mass)
+            # size = (11, 13, 13)
 
     if max_mass > 0:
         f = f[f['mass'] <= max_mass]
     #outputsomehow is 3D, we want 2
-    coords = np.dstack((round(f.y),round(f.x)))[0].astype(int)
+    if image.ndim == 2:
+        coords = np.dstack((round(f.y),round(f.x)))[0].astype(int)
+    elif image.ndim == 3:
+        coords = np.dstack((round(f.z),round(f.y),round(f.x)))[0].astype(int)
+
 
 
     #this is super slow
     # ~ masks = tp.masks.mask_image(coords,np.ones(image.shape),size/2)
 
     #This is faster
-    r = (size-1)/2 # Radius of circles
-    #make 3D compat
-    disk_mask = tp.masks.binary_mask(r,image.ndim)
-    # Initialize output array and set the maskcenters as 1s
-    out = np.zeros(image.shape,dtype=bool)
-    #check if there's a problem with subpixel masking
-    out[coords[:,0],coords[:,1]] = 1
-    # Use binary dilation to get the desired output
-    out = binary_dilation(out,disk_mask)
+    if image.ndim == 2:
+        r = (size-1)/2 # Radius of circles
+        #make 3D compat
+        disk_mask = tp.masks.binary_mask(r,image.ndim)
+        # Initialize output array and set the maskcenters as 1s
+        out = np.zeros(image.shape,dtype=bool)
+        #check if there's a problem with subpixel masking
+        out[coords[:,0],coords[:,1]] = 1
+        # Use binary dilation to get the desired output
+        out = binary_dilation(out,disk_mask)
+        labels, nb = ndi.label(out)
 
-
-    labels, nb = ndi.label(out)
-    if _round:
-        return labels, coords
+        if _round:
+            return labels, coords
     else:
-        coords = np.dstack((f.y,f.x))[0]
-        return labels, coords
+        if image.ndim == 2:
+            coords = np.dstack((f.y,f.x))[0]
+            return labels, coords
+        elif image.ndim == 3:
+            coords = np.dstack((f.z,f.y,f.x))[0]
+            return None, coords
+
 
 
 def make_labels_trackpy_links(image,j,size=5):
@@ -221,11 +243,11 @@ def cellpose_mask(image,model,flow_threshold=0.4,size=0,diam=200,cell_prob=0,mod
 
     # DEFINE CELLPOSE MODEL
     # model_type='cyto' or model_type='nuclei'
+    newsize = (int(image.shape[1]/2),int(image.shape[0]/2))
 
-    channels = [0,0]
-    if bin:
+    if _bin:
     #if image.ndim[0] > 1022 and image.ndim[1] > 1024:
-        img = rebin(np.asarray(image),(512,512))
+        img = rebin(np.asarray(image),newsize)
     else:
         img = np.asarray(image)
 
@@ -234,13 +256,12 @@ def cellpose_mask(image,model,flow_threshold=0.4,size=0,diam=200,cell_prob=0,mod
     # you can set the average cell `diameter` in pixels yourself (recommended)
     # diameter can be a list or a single number for all images
     # cellprob_threshold=-8
-
+    channels = [0,0]
     masks, flows, styles, diams = model.eval(img, diameter=diam, channels=channels,flow_threshold=flow_threshold,cellprob_threshold=cell_prob)
 
     if size != 0:
         masks = size_removal(masks,size)
-
-    masks = rebin(np.asarray(masks),image.shape)
+    if _bin:  masks = rebin(np.asarray(masks),image.shape)
     return masks
 
 
