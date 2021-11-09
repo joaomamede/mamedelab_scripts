@@ -10,6 +10,18 @@ _8bit = float(2**8-1)
 _16bit = float(2**16-1)
 ratio = _8bit /_16bit
 
+def points_in_mask(coords,mask):
+    import numpy as np
+    # coords_int = np.round(coords).astype(int)  # or np.floor, depends
+    coords_int = np.floor(coords).astype(int)  # or np.floor, depends
+    try:
+        values_at_coords = mask[tuple(coords_int.T)]
+    except: values_at_coords = []
+    # .astype(np.int)
+    # values_at_coords = mask[tuple(coords_int)].astype(np.int)
+    print(values_at_coords)
+    return values_at_coords
+
 
 def multiply(real_events, image):
     import numpy as np
@@ -68,7 +80,8 @@ def make_labels_trackpy(image,mass,size=9,_separation=3,_numba=True,max_mass=0,_
     if image.ndim == 2:
         _size = size
     elif image.ndim == 3:
-        _size = (9, size, size)
+        _size = (3, size, size)
+        # _size = (9, size, size)
      # ~ dotrack(ficheiro, plotgraph=True,_numba=True,massa=1500,tamanho=13,dist=250,memoria=1,stub=3,frame=19,colourIDX=0):
     if image.ndim == 2:
         if _numba:
@@ -80,7 +93,7 @@ def make_labels_trackpy(image,mass,size=9,_separation=3,_numba=True,max_mass=0,_
             f = tp.locate(image,diameter=_size,separation = (3, 3, 3),
                 minmass=mass,engine='numba')
         else:
-            f = tp.locate(image,diameter=_size,separation = (3, 5, 5),
+            f = tp.locate(image,diameter=_size,separation = (3, 3, 3),
                 minmass=mass)
             # size = (11, 13, 13)
 
@@ -112,11 +125,11 @@ def make_labels_trackpy(image,mass,size=9,_separation=3,_numba=True,max_mass=0,_
 
         if _round:
             return labels, coords
-    else:
-        if image.ndim == 2:
-            coords = np.dstack((f.y,f.x))[0]
-            return labels, coords
-        elif image.ndim == 3:
+        else:
+            if image.ndim == 2:
+                coords = np.dstack((f.y,f.x))[0]
+                return labels, coords
+    elif image.ndim == 3:
             coords = np.dstack((f.z,f.y,f.x))[0]
             return None, coords
 
@@ -360,3 +373,37 @@ def contrast_img(img,min_,max_ ):
     img -= min_
     img = img * (_16bit/float(max_-min_))
     return img
+
+
+def convert16to8bits_gpu(x,display_min=0,display_max=2**16-1):
+    import cupy as cp
+    def display(image, display_min, display_max): # copied from Bi Rico
+    # Here I set copy=True in order to ensure the original image is not
+    # modified. If you don't mind modifying the original image, you can
+    # set copy=False or skip this step.
+        # image = cp.array(image, copy=FalseTrue)
+        image.clip(display_min, display_max, out=image)
+        image -= display_min
+        cp.floor_divide(image, (display_max - display_min + 1) / 256,
+                        out=image, casting='unsafe')
+        return image.astype(cp.uint8)
+
+    lut = cp.arange(2**16, dtype='uint16')
+    lut = display(lut, display_min, display_max)
+    return cp.asnumpy(cp.take(lut, x))
+
+def convert16to8bits(x,display_min=0,display_max=2**16-1):
+    def display(image, display_min, display_max): # copied from Bi Rico
+    # Here I set copy=True in order to ensure the original image is not
+    # modified. If you don't mind modifying the original image, you can
+    # set copy=False or skip this step.
+        # image = cp.array(image, copy=FalseTrue)
+        image.clip(display_min, display_max, out=image)
+        image -= display_min
+        np.floor_divide(image, (display_max - display_min + 1) / 256,
+                        out=image, casting='unsafe')
+        return image.astype(np.uint8)
+
+    lut = np.arange(2**16, dtype='uint16')
+    lut = display(lut, display_min, display_max)
+    return np.take(lut, x)
