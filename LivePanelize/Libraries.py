@@ -133,8 +133,10 @@ def stitch(filelist,nrows=5,ncolumns=5,progression='snake'):
 
 # vmin=np.percentile(imgs[0],0.1),
 # vmax=np.percentile(imgs[0],99.9)
-def convert16to8bits(x,display_min=1000,display_max=65000):
-    import cupy as cp
+def convert16to8bits(x,display_min=1000,display_max=65000,_GPU=True):
+    if _GPU:
+        import cupy as cp
+    else: import numpy as cp
     def display(image, display_min, display_max): # copied from Bi Rico
     # Here I set copy=True in order to ensure the original image is not
     # modified. If you don't mind modifying the original image, you can
@@ -148,7 +150,10 @@ def convert16to8bits(x,display_min=1000,display_max=65000):
 
     lut = cp.arange(2**16, dtype='uint16')
     lut = display(lut, display_min, display_max)
-    return cp.asnumpy(cp.take(lut, x))
+    if _GPU:
+        return cp.asnumpy(cp.take(lut, x))
+    else:
+        return cp.take(lut,x)
 
 def export():
     plt.imshow(rgb[1,3,:2044,:2048])
@@ -164,3 +169,131 @@ def export():
                     contiguous=False,
                 )
     tif.close()
+
+def pimsmeta2OMEXML(reader, xlen=1, ylen=1, project=False, time_offset=0, maxT=None, _pixeltype = None, verbose=False):
+#     from apeer_ometiff_library import omexmlClass
+    import aicsimageio.vendor.omexml as omexmlClass
+    import re , os, sys
+
+    #Missing TODO:
+    #<Image>,  Name = "ImageName"
+    #Instrument ID and Detector ID and Objective
+#     frames.parser._raw_metadata.image_metadata[b'SLxExperiment'][b'wsCameraName']
+
+    # Objective settings with Refractive Index
+        #Pixels,
+            #Channel Color = RGB###, EmissionWavelength, Name of Channel.
+            #Plane  ExposureTime, Position X, Y, Z (Z is easy as it's in nd2reader metadata)
+    def writeplanes(pixel, SizeT=1, SizeZ=1, SizeC=1, order='TZCYX', verbose=False):
+
+        if order == 'TZCYX' or order == 'XYCZT':
+            pixel.DimensionOrder = omexmlClass.DO_XYCZT
+            counter = 0
+            for t in range(SizeT):
+                for z in range(SizeZ):
+                    for c in range(SizeC):
+
+                        if verbose:
+                            print('Write PlaneTable: ', t, z, c),
+                            sys.stdout.flush()
+
+                        pixel.Plane(counter).TheT = t
+                        pixel.Plane(counter).TheZ = z
+                        pixel.Plane(counter).TheC = c
+                        #check basically because of triggered acquisition the arrays shouldn't have the size of "channel"
+                        pixel.Plane(counter).DeltaT = np.float(reader.metadata.PlaneDeltaT(0,counter)) + time_offset
+                        if verbose: print(pixel.Plane(counter).DeltaT)
+                        try:
+                            pixel.Plane(counter).PositionZ = reader.metadata.PlanePositionZ(0,counter)
+                            if verbose: print(pixel.Plane(counter).PositionZ)
+                        except: print("No position Z")
+                        try:
+                            pixel.Plane(counter).PositionX = reader.metadata.PlanePositionX(0,counter)
+                        except: print("No position X")
+                        try:
+                            pixel.Plane(counter).PositionY = reader.metadata.PlanePositionY(0,counter)
+                        except: print("No position Y")
+#                         pixel.Plane(counter).ExposureTime =
+#                         pixel.Plane(counter).PositionX =
+#                         pixel.Plane(counter).PositionY =
+#                         pixel.Plane(counter).
+                        counter = counter + 1
+
+
+        return pixel
+
+    #make a metadata var
+    bfmeta = reader.metadata
+    scalex = reader.metadata.PixelsPhysicalSizeX(0)
+    scaley = scalex
+
+    if not project:
+        scalez = reader.metadata.PixelsPhysicalSizeZ(0)
+    if _pixeltype is not None:
+        pixeltype = reader.metadata.PixelsType(0)
+    else: pixeltype = _pixeltype
+    # dimorder = 'TZCYX'
+    dimorder = reader.metadata.PixelsDimensionOrder(0)
+
+    omexml = omexmlClass.OMEXML()
+
+    omexml.image(0).Name = os.path.basename(reader.filename)
+    p = omexml.image(0).Pixels
+
+    p.SizeX = reader.sizes['x']*xlen
+    p.SizeY = reader.sizes['y']*ylen
+    p.SizeC = reader.sizes['c']
+    if maxT == None:
+        try:
+            p.SizeT = reader.sizes['t'] ################# concat #########
+            maxT = p.SizeT
+        except:
+            print("Single T")
+            maxT = 1
+    else: p.SizeT = maxT
+
+    p.PhysicalSizeX = np.float(scalex)
+    p.PhysicalSizeY = np.float(scaley)
+    p.PixelType = pixeltype
+    p.channel_count = reader.sizes['c']
+
+
+
+    #I am using separate files for each visit point
+    #, if you want one tiff with all visit points (possibly good for panels)
+    #you will need to update this section
+
+    for c in range(p.SizeC):
+        try:
+            p.Channel(c).Name = str(reader.metadata.ChannelEmissionWavelength(0,c))
+        except: p.Channel(c).Name = str(reader.metadata.ChannelName(0,c))
+
+        clr = {'miRFsP670':  65535 , 'mirfp670':  65535 ,'AF647': 65535,'a647': 65535,'Cy5': 65535,'640 nm': 65535,'pqbp1-AF647': 65535,
+               'farRED-EM': 65535, 'mirfp67-': 65535,'Cy5 (Em)': 65535,
+               'mruby3' : -16776961,'mRuby3' : -16776961,'mRuby' : -16776961,'RED-EM' : -16776961,'555 nm' : -16776961,'TRITC': -16776961, 'Cy3': -16776961,
+                           'FITc': 16711935,   'fitc': 16711935,'GFP': 16711935,'FITC': 16711935,'GREEN-EM': 16711935, '470 nm': 16711935,'FITC (Em)': 16711935,'Igfp': 16711935, 'AF488': 16711935,'pre-paGFP': 16711935,'pre-paGFP': 16711935,'post-PAGFP':-16776961,'PAGFP':-16776961,
+               'DAPI': 65535, 'Cgas-DY405': 65535, 'DAPI (Em)': 65535,'igfp': 16711935,}
+
+        p.Channel(c).Color = clr[p.Channel(c).Name]
+        p.Channel(c).ChannelEmissionWavelength = clr[p.Channel(c).Name]
+        if pixeltype == 'unit8':
+            #this is not related, fix in the future
+            p.Channel(c).SamplesPerPixel = 1
+        if pixeltype == 'unit16':
+            p.Channel(c).SamplesPerPixel = 1
+
+    if project:
+        p.SizeZ = 1
+        if verbose: print(maxT)
+        p.plane_count = 1 * maxT * p.SizeC #* SizeV
+        p = writeplanes(p, SizeT=maxT, SizeZ=1, SizeC=p.SizeC, order=dimorder, verbose=verbose)
+    else:
+        p.SizeZ = reader.sizes['z']
+        p.plane_count = p.SizeZ * maxT * p.SizeC #* SizeV
+        p = writeplanes(p, SizeT=maxT, SizeZ=p.SizeZ, SizeC=p.SizeC, order=dimorder, verbose=verbose)
+
+
+    p.populate_TiffData()
+#     omexml.structured_annotations.add_original_metadata(omexmlClass.OM_SAMPLES_PER_PIXEL, str(p.SizeC))
+
+    return omexml

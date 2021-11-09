@@ -21,9 +21,9 @@ def launch_napari():
 
     filelist = glob.glob(folder_path.get() + "/*.ome.tiff")
     filelist.sort()
-    all = Libraries.stitch(filelist,6,6,'snake')
-    all8 = all.map_blocks(Libraries.convert16to8bits)
-    all8
+    all = Libraries.stitch(filelist,9,5,'snake')
+    # all8 = all.map_blocks(Libraries.convert16to8bits)
+    all8 = all
     #can't reshape I don't know why, resclicing was the only way I found
     green = all8[:-3:3]
     red = all8[1:-2:3]
@@ -33,7 +33,8 @@ def launch_napari():
     #DETAIL IS HERE!!!!
     rgb = dask.array.stack([red,blue,green],axis=0)
     rgb
-    rgb = rgb.compute()
+    #if on the fly ignore this
+    # rgb = rgb.compute()
 
     rgb.shape
 
@@ -43,43 +44,46 @@ def launch_napari():
     # napari.view_image(all[:,0,:,:,:])
 
 
-    # rmin = np.percentile(rgb[2,2].compute(),0.1)
-    # rmax = np.percentile(rgb[2,2].compute(),99.5)
-    # gmin = np.percentile(rgb[0,2].compute(),0.1)
-    # gmax = np.percentile(rgb[0,2].compute(),99.5)
-    # bmin = np.percentile(rgb[1,2].compute(),0.1)
-    # bmax = np.percentile(rgb[1,2].compute(),99.5)
+    rmin = np.percentile(rgb[2,2].compute(),0.1)
+    rmax = np.percentile(rgb[2,2].compute(),99.5)
+    gmin = np.percentile(rgb[0,2].compute(),0.1)
+    gmax = np.percentile(rgb[0,2].compute(),99.5)
+    bmin = np.percentile(rgb[1,2].compute(),0.1)
+    bmax = np.percentile(rgb[1,2].compute(),99.5)
 
-    rmin = np.percentile(rgb[2,2],0.1)
-    rmax = np.percentile(rgb[2,2],99.5)
-    gmin = np.percentile(rgb[0,2],0.1)
-    gmax = np.percentile(rgb[0,2],99.5)
-    bmin = np.percentile(rgb[1,2],0.1)
-    bmax = np.percentile(rgb[1,2],99.5)
+    # rmin = np.percentile(rgb[2,2],0.1)
+    # rmax = np.percentile(rgb[2,2],99.5)
+    # gmin = np.percentile(rgb[0,2],0.1)
+    # gmax = np.percentile(rgb[0,2],99.5)
+    # bmin = np.percentile(rgb[1,2],0.1)
+    # bmax = np.percentile(rgb[1,2],99.5)
+    #
 
-
-    with napari.gui_qt():
-        v = napari.Viewer(show=True)
-               # vmin=np.percentile(imgs[0],0.1),
-               # vmax=np.percentile(imgs[0],99.9)
-        v.add_image(rgb[2,:],
-                    # rgb=True,
-                    contrast_limits=[rmin,rmax],
-                    blending='additive',
-                    colormap='green',
-                    name='HIV-iGFP',#, is_pyramid=False
-                         )
-        v.add_image(rgb[0,:], contrast_limits=[gmin,gmax],
+    # with napari.gui_qt():
+    v = napari.Viewer(show=True)
+           # vmin=np.percentile(imgs[0],0.1),
+           # vmax=np.percentile(imgs[0],99.9)
+    v.add_image(rgb[1,:],
+                # rgb=True,
+                scale=[0.22,0.22],
+                contrast_limits=[rmin,rmax],
                 blending='additive',
-                colormap='red',
-                name='CA-mRuby3',#, is_pyramid=False
+                colormap='green',
+                name='HIV-iGFP',#, is_pyramid=False
                      )
-        v.add_image(rgb[1,:], contrast_limits=[bmin,bmax],
-                blending='additive',
-                colormap='blue',
-                name='Nucspot650',#, is_pyramid=False
-                     )
-
+    v.add_image(rgb[2,:], contrast_limits=[gmin,gmax],
+            scale=[0.22,0.22],
+            blending='additive',
+            colormap='red',
+            name='CA-mRuby3',#, is_pyramid=False
+                 )
+    v.add_image(rgb[0,:], contrast_limits=[bmin,bmax],
+            scale=[0.22,0.22],
+            blending='additive',
+            colormap='blue',
+            name='Nucspot650',#, is_pyramid=False
+                 )
+    napari.run()
 
 from tkinter import filedialog
 
