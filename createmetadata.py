@@ -1,3 +1,20 @@
+from ome_types.model import OME, Image, Pixels
+
+ome = OME()
+img = Image(
+    pixels=Pixels(
+        size_c=2, size_t=1, size_x=512, size_y=512, size_z=15,
+        type='uint16', dimension_order='XYZCT',
+        metadata_only=True
+    )
+)
+ome.images.append(img)
+
+print(ome.to_xml())
+
+
+
+
 import datetime
 def xsd_now():
     '''Return the current time in xsd:dateTime format'''
@@ -20,7 +37,7 @@ https://docs.openmicroscopy.org/latest/ome-model/ome-tiff/ -->
      xsi:schemaLocation="http://www.openmicroscopy.org/Schemas/OME/2016-06 http://www.openmicroscopy.org/Schemas/OME/2016-06/ome.xsd">
     <Image ID="Image:0" Name="default.png">
         <AcquisitionDate>{timestamp}</AcquisitionDate>
-        <Pixels 
+        <Pixels
                 DimensionOrder="XYCZT"
                 ID="Pixels:0"
                 Interleaved="false"
