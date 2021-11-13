@@ -944,13 +944,19 @@ def get_deltaT(filename1,filename2):
     return fname2.stat().st_ctime - fname1.stat().st_ctime
 
 
-def tif_save_page(tif, frame, compress=None, description = None , photometric='minisblack',
+def tif_save_page(tif, frame, compression=None, description = None , photometric='minisblack',
                     metadata= None, contiguous=False):
     import tifffile
-    tif.save(frame, compress = compress, description = description,
-        photometric = photometric, metadata= metadata,
-        contiguous= contiguous,
-    )
+    if description is None:
+        tif.save(frame, compression = compression, description = description,
+          photometric = photometric, metadata= metadata,
+          contiguous= contiguous,
+      )
+    else:
+        tif.save(frame, compression = compression,
+          photometric = photometric, metadata= metadata,
+          contiguous= contiguous,
+      )
 
 def release_mem():
     from numba import cuda
