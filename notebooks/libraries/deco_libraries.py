@@ -184,12 +184,12 @@ def Nd2meta2OMEXML(reader, project=False, time_offset=0, maxT=None, visit=0,**kw
                                 sys.stdout.flush()
                         else:
                             pixel.Plane(counter).PositionZ = nd2meta['z_levels'][z] * np.float(pixel.PhysicalSizeZ)
-                        
-                        
+
+
                         try:
                             x_coords = np.array(
                                  nd2meta['x_coordinates']).reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
-                        
+
                             pixel.Plane(counter).PositionX = x_coords[t,v,z]
                         except: print("No position X")
                         try:
@@ -667,7 +667,7 @@ def pimsmeta2OMEXML(reader, project=False, time_offset=0, maxT=None, verbose=Fal
                'mruby3' : -16776961,'mRuby3' : -16776961,'mRuby' : -16776961,'RED-EM' : -16776961,'555 nm' : -16776961,'TRITC': -16776961, 'Cy3': -16776961,
                            'FITc': 16711935,   'fitc': 16711935,'GFP': 16711935,'FITC': 16711935,'GREEN-EM': 16711935, '470 nm': 16711935,'FITC (Em)': 16711935,'Igfp': 16711935, 'AF488': 16711935,'pre-paGFP': 16711935,'pre-paGFP': 16711935,'post-PAGFP':-16776961,'PAGFP':-16776961,
                'DAPI': 65535, 'Cgas-DY405': 65535, 'DAPI (Em)': 65535,'igfp': 16711935,}
-        
+
         p.Channel(c).Color = clr[p.Channel(c).Name]
         p.Channel(c).ChannelEmissionWavelength = clr[p.Channel(c).Name]
         if pixeltype == 'unit8':
