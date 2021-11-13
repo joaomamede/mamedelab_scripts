@@ -948,12 +948,12 @@ def tif_save_page(tif, frame, compression=None, description = None , photometric
                     metadata= None, contiguous=False):
     import tifffile
     if description is None:
-        tif.save(frame, compression = compression, description = description,
+        tif.save(frame, compression = compression,
           photometric = photometric, metadata= metadata,
           contiguous= contiguous,
       )
     else:
-        tif.save(frame, compression = compression,
+        tif.save(frame, compression = compression, description = description,
           photometric = photometric, metadata= metadata,
           contiguous= contiguous,
       )
