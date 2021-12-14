@@ -191,12 +191,15 @@ def Nd2meta2OMEXML(reader, project=False, time_offset=0, maxT=None, visit=0,**kw
                                  nd2meta['x_coordinates']).reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
 
                             pixel.Plane(counter).PositionX = x_coords[t,v,z]
-                        except: print("No position X")
+                        except:
+                            if verbose: print("No position X")
+
                         try:
                             y_coords = np.array(
                                 nd2meta['y_coordinates']).reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
                             pixel.Plane(counter).PositionY = y_coords[t,v,z]
-                        except: print("No position Y")
+                        except:
+                            if verbose: print("No position Y")
 #                         pixel.Plane(counter).ExposureTime =
 #                         pixel.Plane(counter).PositionX =
 #                         pixel.Plane(counter).PositionY =
