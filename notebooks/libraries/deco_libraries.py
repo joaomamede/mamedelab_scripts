@@ -204,6 +204,67 @@ def Nd2meta2OMEXML(reader, project=False, time_offset=0, maxT=None, visit=0,**kw
 #                         pixel.Plane(counter).PositionX =
 #                         pixel.Plane(counter).PositionY =
                         counter = counter + 1
+        elif order == 'CTZYX':
+            pixel.DimensionOrder = omexmlClass.DO_XYZTC
+            counter = 0
+            for c in range(SizeC):
+                for t in range(SizeT):
+                    for z in range(SizeZ):
+                        if verbose:
+                            print('Write PlaneTable: ', t, v, z, c),
+                            sys.stdout.flush()
+
+                        pixel.Plane(counter).TheT = t
+                        pixel.Plane(counter).TheZ = z
+                        pixel.Plane(counter).TheC = c
+                        #check basically because of triggered acquisition the arrays shouldn't have the size of "channel"
+                        #nd2reader spits ms /1000
+                        #okay, this changes from triggered to non triggered I need to find a way to check if it was a triggered exp
+                        #Fix to skip V's when they are not in the file
+                        timesteps = reader.timesteps/1000
+                        if timesteps.shape[0] == reader.sizes['t']*reader.sizes['v']*reader.sizes['z']:
+                            pass
+                        else: timesteps = timesteps[:reader.sizes['t']*reader.sizes['v']*reader.sizes['z']]
+
+                        timesteps = timesteps.reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
+
+                        pixel.Plane(counter).DeltaT = timesteps[t,v,z] + time_offset
+                        if verbose:
+                            print(timesteps[t,v,z],pixel.Plane(counter).DeltaT)
+                            sys.stdout.flush()
+
+
+                        #since I'm reshaping, I don't need to adapt for projections because the "z" will always be 0
+                        #in that case
+                        z_coords = np.array(
+                            nd2meta['z_coordinates']).reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
+                        if nd2meta['z_coordinates'] != None:
+                            pixel.Plane(counter).PositionZ = z_coords[t,v,z]
+                            if verbose:
+                                print("z:",pixel.Plane(counter).PositionZ)
+                                sys.stdout.flush()
+                        else:
+                            pixel.Plane(counter).PositionZ = nd2meta['z_levels'][z] * np.float(pixel.PhysicalSizeZ)
+
+
+                        try:
+                            x_coords = np.array(
+                                 nd2meta['x_coordinates']).reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
+
+                            pixel.Plane(counter).PositionX = x_coords[t,v,z]
+                        except:
+                            if verbose: print("No position X")
+
+                        try:
+                            y_coords = np.array(
+                                nd2meta['y_coordinates']).reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
+                            pixel.Plane(counter).PositionY = y_coords[t,v,z]
+                        except:
+                            if verbose: print("No position Y")
+#                         pixel.Plane(counter).ExposureTime =
+#                         pixel.Plane(counter).PositionX =
+#                         pixel.Plane(counter).PositionY =
+                        counter = counter + 1
         return pixel
 
     #make a metadata var
