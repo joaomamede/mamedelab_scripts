@@ -669,8 +669,7 @@ def pimsmeta2OMEXML(reader, project=False, time_offset=0, maxT=None, verbose=Fal
 
     return omexml
 
-
-def Concat_OMEXML(filelist, project=False, verbose=True):
+def Concat_OMEXML(filelist, project=False):
 #     from apeer_ometiff_library import omexmlClass
     import aicsimageio.vendor.omexml as omexmlClass
     import re , os, sys
@@ -686,18 +685,18 @@ def Concat_OMEXML(filelist, project=False, verbose=True):
         #Pixels,
             #Channel Color = RGB###, EmissionWavelength, Name of Channel.
             #Plane  ExposureTime, Position X, Y, Z (Z is easy as it's in nd2reader metadata)
-    def writeplanes(pixel,bfmeta, SizeT=1, SizeZ=1, SizeC=1, order='TZCYX', verbose=verbose, ):
+    def writeplanes(pixel,bfmeta, SizeT=1, SizeZ=1, SizeC=1, order='TZCYX', verbose=False, ):
 
         if order == 'TZCYX' or order == 'XYCZT':
             pixel.DimensionOrder = omexmlClass.DO_XYCZT
             counter = 0
+
             for t in range(SizeT):
                 for z in range(SizeZ):
                     for c in range(SizeC):
                         if verbose:
                             print('Write PlaneTable: ', t, z, c, counter)
                             sys.stdout.flush()
-                        print(fname)
                         pixel.Plane(counter).TheT = t
                         pixel.Plane(counter).TheZ = z
                         pixel.Plane(counter).TheC = c
@@ -723,18 +722,17 @@ def Concat_OMEXML(filelist, project=False, verbose=True):
 
 
     def writeextraplanes(pixel, T1=1, SizeT=1, SizeZ=1, SizeC=1, order='TZCYX', verbose=True):
+
         if order == 'TZCYX' or order == 'XYCZT':
             innercounter = 0
             counter = T1*SizeZ*SizeC
-            print(T1+SizeT)
+            if verbose: print("inside extraplanes",T1,T1+SizeT)
             for t in range(T1,SizeT):
-
                 for z in range(SizeZ):
                     for c in range(SizeC):
                         if verbose:
-                            print('Write PlaneTable t,z,c,counter,innercounter: ', t, z, c ,counter,innercounter)
+                            print('Write PlaneTable t,z,c,counter: ', t, z, c ,counter)
                             sys.stdout.flush()
-
 
                         pixel.Plane(counter).TheT = t
                         pixel.Plane(counter).TheZ = z
@@ -747,12 +745,9 @@ def Concat_OMEXML(filelist, project=False, verbose=True):
 #                         pixel.Plane(counter).ExposureTime =
 #                         pixel.Plane(counter).PositionX =
 #                         pixel.Plane(counter).PositionY =
-
 #                         pixel.Plane(counter).
                         counter += 1
                         innercounter += 1
-#                         print('aragag')
-
 
 
         return pixel
@@ -760,7 +755,7 @@ def Concat_OMEXML(filelist, project=False, verbose=True):
     reader =   pims.bioformats.BioformatsReader(filelist[0],java_memory='1024m')
 #     reader.iter_axes = 't'  # 't' is the default already
     # reader.bundle_axes = 'zyx'  # when 'z' is available, this will be default
-
+    reader
     #make a metadata var
     bfmeta = reader.metadata
     scalex = reader.metadata.PixelsPhysicalSizeX(0)
@@ -793,6 +788,7 @@ def Concat_OMEXML(filelist, project=False, verbose=True):
         #, if you want one tiff with all visit points (possibly good for panels)
         #you will need to update this section
     for c in range(p.SizeC):
+
         p.Channel(c).Name = str(reader.metadata.ChannelName(0,c))
         p.Channel(c).Color = reader.metadata.ChannelColor(0,c)
 #         p.Channel(c).ChannelEmissionWavelength = float(reader.metadata.ChannelName(0,c))
@@ -807,7 +803,7 @@ def Concat_OMEXML(filelist, project=False, verbose=True):
 
     time_total = 0
     for fname in filelist:
-        print('Time total:',fname)
+
         reader =  pims.bioformats.BioformatsReader(fname,java_memory='1024m')
 #     frames.iter_axes = 't'  # 't' is the default already
         # frames.bundle_axes = 'zyx'  # when 'z' is available, this will be default
@@ -817,13 +813,12 @@ def Concat_OMEXML(filelist, project=False, verbose=True):
         except: time_total += 1
 
     p.SizeT = time_total ################# concat #########
-
-    reader =  pims.bioformats.BioformatsReader(filelist[0],java_memory='1024m')
-    bfmeta = reader.metadata
-#     sizeT_local = 0
+    #don't need to reopen bfmeta is from first file
+#     reader =  pims.bioformats.BioformatsReader(filelist[0],java_memory='1024m')
+#     bfmeta = reader.metadata
     try:
         if reader.sizes['t'] > 0:
-            sizeT_local = reader.sizes['t']
+            sizeT_local = bfmeta.PixelsSizeT(0)
     except: sizeT_local = 1
     if project:
         p.SizeZ = 1
@@ -839,27 +834,30 @@ def Concat_OMEXML(filelist, project=False, verbose=True):
 
     filelist.pop(0)
     restartT = sizeT_local
-    print('size before:', restartT)
     for fname in filelist:
         reader =  pims.bioformats.BioformatsReader(fname,java_memory='1024m')
+
         try:
             if reader.sizes['t'] > 0:
+                #not += it is =
                 sizeT_local = reader.sizes['t']
-        except: print('problem',sizeT_local = 1)
+        except: sizeT_local = 1
+
 #     frames.iter_axes = 't'  # 't' is the default already
         # frames.bundle_axes = 'zyx'  # when 'z' is available, this will be default
         try:
             if project:
-                print('size before and after:', restartT, sizeT_local)
-                p = writeextraplanes(p, T1=restartT,SizeT=restartT+sizeT_local, SizeZ=1, SizeC=p.SizeC, order=dimorder,verbose=True)  ################# concat #########
+                print(restartT,restartT+sizeT_local)
+
+                p = writeextraplanes(p, T1=restartT,SizeT=restartT+sizeT_local, SizeZ=1, SizeC=p.SizeC, order=dimorder,verbose=False)  ################# concat #########
             else:
                 p = writeextraplanes(p, T1=restartT,SizeT=restartT+sizeT_local, SizeZ=p.SizeZ, SizeC=p.SizeC, order=dimorder,verbose=False)  ################# concat #########
-#             try:
-#                 restartT += reader.sizes['t']
-#             except:
-#                 print("Something Went wrong time problems")
-#                 restartT += 1
-        except: print("Something Went trong")
+            try:
+                restartT += reader.sizes['t']
+            except:
+                print("Something Went wrong time problems")
+                restartT += 1
+        except: print("Something Went wrong with writeextraplanes")
 
 
 
