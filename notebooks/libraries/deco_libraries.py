@@ -175,8 +175,9 @@ def Nd2meta2OMEXML(reader, project=False, time_offset=0, maxT=None, visit=0,**kw
 
                         #since I'm reshaping, I don't need to adapt for projections because the "z" will always be 0
                         #in that case
+
                         z_coords = np.array(
-                            nd2meta['z_coordinates']).reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
+                        nd2meta['z_coordinates'])[:reader.sizes['t'] * reader.sizes['v']* reader.sizes['z']].reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
                         if nd2meta['z_coordinates'] != None:
                             pixel.Plane(counter).PositionZ = z_coords[t,v,z]
                             if verbose:
@@ -188,7 +189,7 @@ def Nd2meta2OMEXML(reader, project=False, time_offset=0, maxT=None, visit=0,**kw
 
                         try:
                             x_coords = np.array(
-                                 nd2meta['x_coordinates']).reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
+                                 nd2meta['x_coordinates'])[:reader.sizes['t'] * reader.sizes['v']* reader.sizes['z']].reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
 
                             pixel.Plane(counter).PositionX = x_coords[t,v,z]
                         except:
@@ -196,7 +197,7 @@ def Nd2meta2OMEXML(reader, project=False, time_offset=0, maxT=None, visit=0,**kw
 
                         try:
                             y_coords = np.array(
-                                nd2meta['y_coordinates']).reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
+                                nd2meta['y_coordinates'])[:reader.sizes['t'] * reader.sizes['v']* reader.sizes['z']].reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
                             pixel.Plane(counter).PositionY = y_coords[t,v,z]
                         except:
                             if verbose: print("No position Y")
