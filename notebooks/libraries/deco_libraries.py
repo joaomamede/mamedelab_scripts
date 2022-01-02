@@ -176,9 +176,10 @@ def Nd2meta2OMEXML(reader, project=False, time_offset=0, maxT=None, visit=0,**kw
                         #since I'm reshaping, I don't need to adapt for projections because the "z" will always be 0
                         #in that case
 
-                        z_coords = np.array(
-                        nd2meta['z_coordinates'])[:reader.sizes['t'] * reader.sizes['v']* reader.sizes['z']].reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
+
                         if nd2meta['z_coordinates'] != None:
+                            z_coords = np.array(
+                            nd2meta['z_coordinates'])[:reader.sizes['t'] * reader.sizes['v']* reader.sizes['z']].reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
                             pixel.Plane(counter).PositionZ = z_coords[t,v,z]
                             if verbose:
                                 print("z:",pixel.Plane(counter).PositionZ)
