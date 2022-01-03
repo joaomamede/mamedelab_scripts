@@ -110,7 +110,7 @@ def update_progress(progress):
 # import re
 
 
-def Nd2meta2OMEXML(reader, project=False, time_offset=0, maxT=None, visit=0,**kwargs):
+def Nd2meta2OMEXML(reader, project=False, time_offset=0, maxT=None, visit=0, order='TZCYX',**kwargs):
 #     from apeer_ometiff_library import omexmlClass
     import aicsimageio.vendor.omexml as omexmlClass
     import re
@@ -161,25 +161,25 @@ def Nd2meta2OMEXML(reader, project=False, time_offset=0, maxT=None, visit=0,**kw
                         #okay, this changes from triggered to non triggered I need to find a way to check if it was a triggered exp
                         #Fix to skip V's when they are not in the file
                         timesteps = reader.timesteps/1000
-                        if timesteps.shape[0] == reader.sizes['t']*reader.sizes['v']*reader.sizes['z']:
+                        if timesteps.shape[0] == SizeT*reader.sizes['v']*reader.sizes['z']:
                             pass
-                        else: timesteps = timesteps[:reader.sizes['t']*reader.sizes['v']*reader.sizes['z']]
-
-                        timesteps = timesteps.reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
-
+                        else: timesteps = timesteps[:SizeT*reader.sizes['v']*reader.sizes['z']]
+                            
+                        timesteps = timesteps.reshape((SizeT,reader.sizes['v'],reader.sizes['z']))
+                        
                         pixel.Plane(counter).DeltaT = timesteps[t,v,z] + time_offset
                         if verbose:
                             print(timesteps[t,v,z],pixel.Plane(counter).DeltaT)
                             sys.stdout.flush()
 
-
                         #since I'm reshaping, I don't need to adapt for projections because the "z" will always be 0
                         #in that case
 
 
+
                         if nd2meta['z_coordinates'] != None:
                             z_coords = np.array(
-                            nd2meta['z_coordinates'])[:reader.sizes['t'] * reader.sizes['v']* reader.sizes['z']].reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
+                        nd2meta['z_coordinates'])[:reader.sizes['t'] * reader.sizes['v']* reader.sizes['z']].reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
                             pixel.Plane(counter).PositionZ = z_coords[t,v,z]
                             if verbose:
                                 print("z:",pixel.Plane(counter).PositionZ)
@@ -212,6 +212,7 @@ def Nd2meta2OMEXML(reader, project=False, time_offset=0, maxT=None, visit=0,**kw
             for c in range(SizeC):
                 for t in range(SizeT):
                     for z in range(SizeZ):
+
                         if verbose:
                             print('Write PlaneTable: ', t, v, z, c),
                             sys.stdout.flush()
@@ -224,23 +225,25 @@ def Nd2meta2OMEXML(reader, project=False, time_offset=0, maxT=None, visit=0,**kw
                         #okay, this changes from triggered to non triggered I need to find a way to check if it was a triggered exp
                         #Fix to skip V's when they are not in the file
                         timesteps = reader.timesteps/1000
-                        if timesteps.shape[0] == reader.sizes['t']*reader.sizes['v']*reader.sizes['z']:
+                        if timesteps.shape[0] == SizeT*reader.sizes['v']*reader.sizes['z']:
                             pass
-                        else: timesteps = timesteps[:reader.sizes['t']*reader.sizes['v']*reader.sizes['z']]
-
-                        timesteps = timesteps.reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
-
+                        else: timesteps = timesteps[:SizeT*reader.sizes['v']*reader.sizes['z']]
+                            
+                        timesteps = timesteps.reshape((SizeT,reader.sizes['v'],reader.sizes['z']))
+                        
                         pixel.Plane(counter).DeltaT = timesteps[t,v,z] + time_offset
                         if verbose:
                             print(timesteps[t,v,z],pixel.Plane(counter).DeltaT)
                             sys.stdout.flush()
 
-
                         #since I'm reshaping, I don't need to adapt for projections because the "z" will always be 0
                         #in that case
-                        z_coords = np.array(
-                            nd2meta['z_coordinates']).reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
+
+
+
                         if nd2meta['z_coordinates'] != None:
+                            z_coords = np.array(
+                        nd2meta['z_coordinates'])[:reader.sizes['t'] * reader.sizes['v']* reader.sizes['z']].reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
                             pixel.Plane(counter).PositionZ = z_coords[t,v,z]
                             if verbose:
                                 print("z:",pixel.Plane(counter).PositionZ)
@@ -251,7 +254,7 @@ def Nd2meta2OMEXML(reader, project=False, time_offset=0, maxT=None, visit=0,**kw
 
                         try:
                             x_coords = np.array(
-                                 nd2meta['x_coordinates']).reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
+                                 nd2meta['x_coordinates'])[:reader.sizes['t'] * reader.sizes['v']* reader.sizes['z']].reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
 
                             pixel.Plane(counter).PositionX = x_coords[t,v,z]
                         except:
@@ -259,7 +262,7 @@ def Nd2meta2OMEXML(reader, project=False, time_offset=0, maxT=None, visit=0,**kw
 
                         try:
                             y_coords = np.array(
-                                nd2meta['y_coordinates']).reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
+                                nd2meta['y_coordinates'])[:reader.sizes['t'] * reader.sizes['v']* reader.sizes['z']].reshape((reader.sizes['t'],reader.sizes['v'],reader.sizes['z']))
                             pixel.Plane(counter).PositionY = y_coords[t,v,z]
                         except:
                             if verbose: print("No position Y")
@@ -280,9 +283,11 @@ def Nd2meta2OMEXML(reader, project=False, time_offset=0, maxT=None, visit=0,**kw
     if not project:
 #         scalez = round(nd2meta['z_coordinates'][1]-nd2meta['z_coordinates'][0],3)
 #         scalez = frames.parser._raw_metadata.image_metadata[b'SLxExperiment'][b'ppNextLevelEx'][b''][b'ppNextLevelEx'][b''][b'uLoopPars'][b'dZStep']
-        scalez = extra_dict['Step'].split()[0]
+        try:
+            scalez = extra_dict['Step'].split()[0]
+        except: scalez = 0.5
     pixeltype = 'uint16'
-    dimorder = 'TZCYX'
+    dimorder = order
 # print(a)
     omexml = omexmlClass.OMEXML()
 #     omexml.image_count = 1
@@ -292,20 +297,25 @@ def Nd2meta2OMEXML(reader, project=False, time_offset=0, maxT=None, visit=0,**kw
 
     p.SizeX = reader.sizes['x']
     p.SizeY = reader.sizes['y']
-    p.SizeC = reader.sizes['c']
+    try:
+        p.SizeC = reader.sizes['c']
+    except: p.SizeC=1
     SizeV = reader.sizes['v']
     if maxT == None:
         p.SizeT = reader.sizes['t']
         maxT = p.SizeT
     else: p.SizeT = maxT
-
+        
     p.PhysicalSizeX = np.float(scalex)
     p.PhysicalSizeY = np.float(scaley)
 
     if not project:
         p.PhysicalSizeZ = np.float(scalez)
     p.PixelType = pixeltype
-    p.channel_count = reader.sizes['c']
+    try:
+        p.channel_count = reader.sizes['c']
+    except:
+        p.channel_count = 1
 
 
     #I am using separate files for each visit point
@@ -315,18 +325,13 @@ def Nd2meta2OMEXML(reader, project=False, time_offset=0, maxT=None, visit=0,**kw
         p.Channel(c).Name = nd2meta['channels'][c]
         # try to automate by wavelenght one day, this basically sets the colour
         # to be automatically shown in Fiji/Image/NIS-elements
-        clr = {'miRFsP670':  65535 , 'mirfp670':  65535 ,'AF647': 65535,'a647': 65535,'Cy5': 65535,'640 nm': 65535,'pqbp1-AF647': 65535,
+        clr = {'miRFP670':  65535 , 'mirfp670':  65535 ,'AF647': 65535,'a647': 65535,'Cy5': 65535,'640 nm': 65535,'pqbp1-AF647': 65535,
                'farRED-EM': 65535, 'mirfp67-': 65535,'Cy5 (Em)': 65535,
                'mruby3' : -16776961,'mRuby3' : -16776961,'mRuby' : -16776961,'RED-EM' : -16776961,'555 nm' : -16776961,'TRITC': -16776961, 'Cy3': -16776961,
                            'FITc': 16711935,   'fitc': 16711935,'GFP': 16711935,'FITC': 16711935,'GREEN-EM': 16711935, '470 nm': 16711935,'FITC (Em)': 16711935,'Igfp': 16711935, 'AF488': 16711935,'pre-paGFP': 16711935,'pre-paGFP': 16711935,'post-PAGFP':-16776961,'PAGFP':-16776961,
                'DAPI': 65535, 'Cgas-DY405': 65535, 'DAPI (Em)': 65535,'igfp': 16711935,}
-        if p.Channel(c).Name in clr:
-            p.Channel(c).Color = clr[p.Channel(c).Name]
-            p.Channel(c).ChannelEmissionWavelength = clr[p.Channel(c).Name]
-        else:
-            print('Warning, color is not defined in the dictionary, defaulting to green')
-            p.Channel(c).Color = 16711935
-            p.Channel(c).ChannelEmissionWavelength = 16711935
+        p.Channel(c).Color = clr[p.Channel(c).Name]
+        p.Channel(c).ChannelEmissionWavelength = clr[p.Channel(c).Name]
         #Get this from metadata or ExtraData
         # p.Channel(c).EmissionWavelength =
         if pixeltype == 'unit8':
