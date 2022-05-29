@@ -11,8 +11,8 @@ from tkinter import Tk, filedialog
 from ipywidgets import interact
 
 
-def tick_choices(Project,Zstack,append,_ram):
-    return Project,Zstack,append,_ram
+def tick_choices(Project,Zstack,append,_ram,sub_back):
+    return Project,Zstack,append,_ram,sub_back
 
 class SelectFilesButton(object):
     """A file widget that leverages tkinter.filedialog."""
@@ -164,9 +164,9 @@ def Nd2meta2OMEXML(reader, project=False, time_offset=0, maxT=None, visit=0, ord
                         if timesteps.shape[0] == SizeT*reader.sizes['v']*reader.sizes['z']:
                             pass
                         else: timesteps = timesteps[:SizeT*reader.sizes['v']*reader.sizes['z']]
-                            
+
                         timesteps = timesteps.reshape((SizeT,reader.sizes['v'],reader.sizes['z']))
-                        
+
                         pixel.Plane(counter).DeltaT = timesteps[t,v,z] + time_offset
                         if verbose:
                             print(timesteps[t,v,z],pixel.Plane(counter).DeltaT)
@@ -228,9 +228,9 @@ def Nd2meta2OMEXML(reader, project=False, time_offset=0, maxT=None, visit=0, ord
                         if timesteps.shape[0] == SizeT*reader.sizes['v']*reader.sizes['z']:
                             pass
                         else: timesteps = timesteps[:SizeT*reader.sizes['v']*reader.sizes['z']]
-                            
+
                         timesteps = timesteps.reshape((SizeT,reader.sizes['v'],reader.sizes['z']))
-                        
+
                         pixel.Plane(counter).DeltaT = timesteps[t,v,z] + time_offset
                         if verbose:
                             print(timesteps[t,v,z],pixel.Plane(counter).DeltaT)
@@ -305,7 +305,7 @@ def Nd2meta2OMEXML(reader, project=False, time_offset=0, maxT=None, visit=0, ord
         p.SizeT = reader.sizes['t']
         maxT = p.SizeT
     else: p.SizeT = maxT
-        
+
     p.PhysicalSizeX = np.float(scalex)
     p.PhysicalSizeY = np.float(scaley)
 
