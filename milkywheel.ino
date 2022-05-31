@@ -33,9 +33,9 @@ AccelStepper stepper1(STEPS, motorPin1, motorPin3, motorPin2, motorPin4);
 void setup() {
   Serial.flush();
   Serial.begin(9600);  // Baud rate, make sure this is the same as ASCOM driver
-  stepper1.setMaxSpeed(1000.0);
-  stepper1.setAcceleration(1000.0); // Acceleration
-  stepper1.setSpeed(1000.0);
+  stepper1.setMaxSpeed(60000.0);
+  stepper1.setAcceleration(10000.0); // Acceleration
+  stepper1.setSpeed(30000.0);
   stepperHome(); //runs routine to home motor
   Serial.println("1#");
 }
@@ -116,12 +116,17 @@ void stepperHome()
 {
   HallValue = digitalRead(out);    // read the hall sensor value
   digitalWrite(13, HIGH); // Flash LEDs for Move
-
+//if HallValue == LOW:
+// move=688
+// else: while blablablal
+// do it 6 times calculate the good stepping distance with linear regression
+// then set possition
+// and reset the stepping positions
   while (HallValue == HIGH)
   {
     stepper1.setAcceleration(1000.0); // Acceleration
-    stepper1.setSpeed(1000.0);
-    stepper1.move(20);
+    stepper1.setSpeed(10000.0);
+    stepper1.move(5;
     stepper1.run();
     HallValue = digitalRead(out); // read the hall sensor value
   }
