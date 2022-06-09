@@ -3,7 +3,7 @@
 // General definitions
 int CurrentFilter = 0;                  // Filter integer
 int HallValue;                          // Hall switch variable
-int Microstep = 4;
+int Microstep = 2;
 
 // Filter steps definitions
 int CalibrationOffset = 24*Microstep;              // Steps required to move to first filter position after calibration is done
@@ -18,12 +18,12 @@ int FilterSteps6 = FilterSteps * 6;     // Set filter steps for 6th position
 
 // Hall pin definition
 const int out = 9;                     // PIN 12 = Hall effect switch
-const int pos0 = 4;
-const int pos1 = 5;
-const int pos2 = 10;
-const int pos3 = 16;
-const int pos4 = 14;
-const int pos5 = 15;
+const int pos0 = 10;
+const int pos1 = 16;
+const int pos2 = 14;
+const int pos3 = 15;
+const int pos4 = 5;
+const int pos5 = 4;
 const int calibrate = 3;
 const int LED_pin = 2;
 // Motor definitions
@@ -59,12 +59,12 @@ void setTXLED() {
 }
 
 void setup() {
-
+  
   Serial.flush();
   Serial.begin(9600);  // Baud rate, make sure this is the same as ASCOM driver
-  stepper1.setMaxSpeed(200000.0);
-  stepper1.setAcceleration(100000.0); // Acceleration
-  stepper1.setSpeed(35000.0);
+  stepper1.setMaxSpeed(100000.0);
+  stepper1.setAcceleration(150000.0); // Acceleration
+  stepper1.setSpeed(16000.0);
   stepperHome(); //runs routine to home motor
   Serial.println("1#");
   pinMode(pos0, INPUT);//pin10 pos0
@@ -79,7 +79,7 @@ void setup() {
   pinMode(M0, OUTPUT);
   pinMode(M1, OUTPUT);
   pinMode(M2, OUTPUT);
-
+  
 }
 
 
@@ -116,11 +116,11 @@ void loop() {
 
 void stepperHome()
 {
-  digitalWrite(M0, LOW);
-  digitalWrite(M1, HIGH);
+  digitalWrite(M0, HIGH);
+  digitalWrite(M1, LOW);
   digitalWrite(M2, LOW);
 //  digitalWrite(M2, LOW);
-
+  
   HallValue = digitalRead(out);    // read the hall sensor value
   digitalWrite(LED_pin, HIGH); // Flash LEDs for Move
 //if HallValue == LOW:
@@ -141,9 +141,9 @@ void stepperHome()
   stepper1.setCurrentPosition(0);
   stepper1.runToNewPosition(CalibrationOffset);
   stepper1.setCurrentPosition(0);
-  stepper1.setMaxSpeed(200000.0);
-  stepper1.setAcceleration(100000.0); // Acceleration
-  stepper1.setSpeed(35000.0);
+  stepper1.setMaxSpeed(100000.0);
+  stepper1.setAcceleration(150000.0); // Acceleration
+  stepper1.setSpeed(16000.0);
   digitalWrite(LED_pin, LOW); // Disable LEDs after Move
 
 }
